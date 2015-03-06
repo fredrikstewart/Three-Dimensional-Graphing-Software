@@ -54,14 +54,14 @@ public class Expression {
 		contents = contents.replaceAll("ee", "" + Math.E);
 		contents = contents.replaceAll("pi", "" + Math.PI);
 		while (contents.matches(".*ln[(].*[)].*")) {
-			String fun = "acos(";
+			String fun = "ln(";
 			String subContents = contents.substring(contents.indexOf(fun) + fun.length(), getMatchingParenIndex(contents, contents.indexOf(fun) + fun.length()));
 			int d = createOrder(subContents);
 			contents = contents.replace(fun + subContents + ")", "" + d);
 			operations.add(new FunctionOperation(FunctionOperation.LN, d, -1, d));
 		}
 		while (contents.matches(".*asin[(].*[)].*")) {
-			String fun = "acos(";
+			String fun = "asin(";
 			String subContents = contents.substring(contents.indexOf(fun) + fun.length(), getMatchingParenIndex(contents, contents.indexOf(fun) + fun.length()));
 			int d = createOrder(subContents);
 			contents = contents.replace(fun + subContents + ")", "" + d);
