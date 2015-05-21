@@ -9,7 +9,7 @@ public class Expression {
 
 	public Expression(String expression) {
 		expression = decimalAllNumbers(expression);
-		String[] sa = expression.split("[/*^%]|[+]|[-]", 0);
+		String[] sa = expression.split("[/*%^]|[+]|[^E/*%)(+^][-]", 0);
 		totalIndecies = sa.length;
 		for (String s: sa) {
 			s = s.replaceAll("asin", "");
@@ -36,7 +36,7 @@ public class Expression {
 	}
 
 	private String decimalAllNumbers(String expression) {
-		String[] sa = expression.split("[/*^%]|[+]|[-]", 0);
+		String[] sa = expression.split("[/*^%]|[+]|[^E/*%)(+^][-]", 0);
 		int currentIndex = 0;
 		for (String s: sa) {
 			if (s.matches("[0-9]*")) {

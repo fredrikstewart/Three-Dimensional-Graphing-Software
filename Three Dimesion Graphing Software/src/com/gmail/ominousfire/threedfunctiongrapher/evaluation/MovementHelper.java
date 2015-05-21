@@ -15,8 +15,8 @@ public class MovementHelper {
 	static float yaw = 		0;
 	static float pitch = 	0;
 	private static float maxPitch = 70F;
-	private static float pitchMod = 1.2F;
-	private static float yawMod = 1.2F;
+	private static float pitchMod = 0.40F;
+	private static float yawMod = 0.40F;
 	private static double moveMod = .001F;
 	private static float friction = .98F;
 	private static float yMoveMod = .001F;
@@ -48,6 +48,14 @@ public class MovementHelper {
 			}
 			if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)) {
 				velY -= yMoveMod;
+			}
+			if (Keyboard.isKeyDown(Keyboard.KEY_EQUALS)) {
+				pitchMod += 10 * yMoveMod;
+				yawMod += 10 * yMoveMod;
+			}
+			if (Keyboard.isKeyDown(Keyboard.KEY_MINUS)) {
+				pitchMod -= 10 * yMoveMod;
+				yawMod -= 10 * yMoveMod;
 			}
 			if (Keyboard.isKeyDown(Keyboard.KEY_E)) {
 				wait = !wait;
