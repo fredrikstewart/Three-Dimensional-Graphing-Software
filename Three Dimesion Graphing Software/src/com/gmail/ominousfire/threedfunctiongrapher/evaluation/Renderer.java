@@ -17,18 +17,17 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.glu.GLU;
 
 public class Renderer implements Runnable {
-	
-	private static final int SEGMENT_SIZE = 10;
+
 	private int depthRender = 100;
 	private double yRender = 100;
 	private double xRender = 100;
 	private static String functionString = "sin(y + x) = 2 * x * (z + x * y + y * z)";
-	private int takeImage;
-	private static double b = 5;
-	private static double c = .05;
+	private int takeImageTimer;
+	private static double renderCubesize = 5;
+	private static double renderStepsize = .05;
 	public static boolean cinematicMode = false;
-	
-	
+
+
 
 	public Renderer() {
 		(new Thread(this, "Render")).start();
@@ -47,9 +46,9 @@ public class Renderer implements Runnable {
 		GL11.glEnable(GL11.GL_TEXTURE_2D); // Enable Texture Mapping ( NEW )
 		GL11.glShadeModel(GL11.GL_SMOOTH);
 		GL11.glEnable(GL11.GL_BLEND);
-	    GL11.glBlendFunc(GL11.GL_SRC_ALPHA,GL11.GL_ONE_MINUS_SRC_ALPHA);
+		GL11.glBlendFunc(GL11.GL_SRC_ALPHA,GL11.GL_ONE_MINUS_SRC_ALPHA);
 	}
-	
+
 
 	@Override
 	public void run() {
@@ -57,7 +56,7 @@ public class Renderer implements Runnable {
 		double cores = Runtime.getRuntime().availableProcessors();
 		Function[] functions = new Function[(int) cores];
 		for (int i = 0; i < cores; i++) {
-			Function f = new Function(functionString, -b, b, -b, b, -b + 2 * (i) / cores * (b + c), -b + 2 * (i + 1) / cores * (b + c), c, new String[] {"x" , "y", "z"}, i + 1);
+			Function f = new Function(functionString, -renderCubesize, renderCubesize, -renderCubesize, renderCubesize, -renderCubesize + 2 * (i) / cores * (renderCubesize + renderStepsize), -renderCubesize + 2 * (i + 1) / cores * (renderCubesize + renderStepsize), renderStepsize, new String[] {"x" , "y", "z"}, i + 1);
 			Thread t = new Thread(f);
 			t.start();
 			functions[i] = f;
@@ -78,52 +77,65 @@ public class Renderer implements Runnable {
 		{
 			prerender();
 			MovementHelper.moveToCharacter();
+			drawAxii();
 			for (int i = 0; i < cores; i++) {
 				functions[i].render();
 			}
 			Display.update();
 			MovementHelper.handleMovement();
-		    if (takeImage++ % 12 == 0 && cinematicMode) takeScreenshot();
-
+			if (takeImageTimer++ % 12 == 0 && cinematicMode) takeScreenshot();
 		}
+	}
+
+	private void drawAxii() {
+		//draws simple axiis
+		GL11.glBegin(GL11.GL_LINES);
+		GL11.glColor3f(1, 0, 0);
+		GL11.glVertex3f((float) renderCubesize, 0, 0);
+		GL11.glVertex3f((float) -renderCubesize, 0, 0);
+		GL11.glColor3f(0, 1, 0);
+		GL11.glVertex3f(0, (float) renderCubesize, 0);
+		GL11.glVertex3f(0, (float) -renderCubesize, 0);
+		GL11.glColor3f(0, 0, 1);
+		GL11.glVertex3f(0, 0,(float) renderCubesize);
+		GL11.glVertex3f(0, 0,(float) -renderCubesize);
+		GL11.glEnd();
 	}
 
 	private void prerender() {
 		float width = (float)Display.getWidth();
-        float height = (float)Display.getWidth();
-     
-        //GL11.glEnable(GL11.GL_TEXTURE_2D);							// Enable Texture Mapping
-       					// Set The Blending Function For Translucency
-        GL11.glClearColor(0.999f, 0.999f, 0.999f, 1.0f);               //This Will Clear The Background Color To Black
-        GL11.glClearDepth(1.0);                                  //Enables Clearing Of The Depth Buffer
-        GL11.glHint(GL11.GL_PERSPECTIVE_CORRECTION_HINT, GL11.GL_NICEST);  // Really Nice Perspective Calculations
-        GL11.glViewport(0, 0, (int)width, (int)height);          
-        GL11.glMatrixMode(GL11.GL_PROJECTION);                   
-        GL11.glLoadIdentity();                                   
-        GLU.gluPerspective(45.0f, width / height, 0.1f, 100.0f); 
-        GL11.glMatrixMode(GL11.GL_MODELVIEW);                    
-        GL11.glLoadIdentity();
-        GL11.glRenderMode(GL11.GL_RGBA);
-        
+		float height = (float)Display.getWidth();
+
+		GL11.glClearColor(0.999f, 0.999f, 0.999f, 1.0f);               //This Will Clear The Background Color To Black
+		GL11.glClearDepth(1.0);                                  //Enables Clearing Of The Depth Buffer
+		GL11.glHint(GL11.GL_PERSPECTIVE_CORRECTION_HINT, GL11.GL_NICEST);  // Really Nice Perspective Calculations
+		GL11.glViewport(0, 0, (int)width, (int)height);
+		GL11.glMatrixMode(GL11.GL_PROJECTION);
+		GL11.glLoadIdentity();
+		GLU.gluPerspective(45.0f, width / height, 0.1f, 100.0f); 
+		GL11.glMatrixMode(GL11.GL_MODELVIEW);                    
+		GL11.glLoadIdentity();
+		GL11.glRenderMode(GL11.GL_RGBA);
+
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);  
-		
-		
 	}
-	
+
 	public static void main(String[] args) {
 		Scanner scanner = new Scanner(System.in);
-		System.out.println("Enter equation. (String) (More complicated function means longer to load)");
+		System.out.println("Enter equation. (String) (More complicated equation means longer to load)");
+		System.out.println("Reminder: Equation should be in the form of constants, coefficents, and the variables x, y, and z");
 		functionString = scanner.nextLine();
-		System.out.println("Enter area to render (Bigger area means longer to load but more of the function will be shown (Decimal allowed)");
-		b = scanner.nextDouble();
+		System.out.println("Enter cube size to render (Bigger area means longer to load but more of the function will be shown (Decimal allowed)");
+		System.out.println("Reminder: cube size stretches on both the positive AND negative axii, so a cube size of 10 will render from -5 to 5.");
+		renderCubesize = scanner.nextDouble() / 2;
 		System.out.println("Enter render stepsize (smaller step size means more detail but longer to load) (Decimal allowed)");
-		c = scanner.nextDouble();
+		renderStepsize = scanner.nextDouble();
 		System.out.println("Enter if you want to set this up in cinematic mode (for GIF making) (true/false) \nWARNING: In this mode, screenshots will automatically be added to your screenshots folder every second. \nDo NOT leave this mode running or it will fill your harddrive.");
 		cinematicMode = scanner.nextBoolean();
 		scanner.close();
 		new Renderer();
 	}
-	
+
 	private static void takeScreenshot() {
 		int width = Display.getWidth();
 		int height = Display.getHeight();

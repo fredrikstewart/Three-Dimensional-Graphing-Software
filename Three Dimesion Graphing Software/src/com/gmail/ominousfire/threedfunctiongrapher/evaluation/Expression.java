@@ -22,7 +22,7 @@ public class Expression {
 			s = s.replaceAll("toRadians", "");
 			s = s.replaceAll("ln", "");
 			variablesInOrder.add(s.replaceAll("[)(]", ""));
-			//System.out.println(s.replaceAll("[)(]", ""));
+			System.out.println(s.replaceAll("[)(]", ""));
 		}
 		String orderedContents = expression.replaceAll("[\t \n\r]", "");
 		for (int i = 0; i < totalIndecies; i++) {
@@ -36,10 +36,10 @@ public class Expression {
 	}
 
 	private String decimalAllNumbers(String expression) {
-		String[] sa = expression.split("[/*^%]|[+]|[^E/*%)(+^][-]", 0);
+		String[] sa = expression.split("[/*%^]|[+]|[^E/*%)(+^][-]", 0);
 		int currentIndex = 0;
 		for (String s: sa) {
-			if (s.matches("[0-9]*")) {
+			if (s.matches("[0-9]+$")) {
 				expression = expression.substring(0, currentIndex) + expression.substring(currentIndex).replaceFirst(s, s + ".0");
 				currentIndex += s.length() + 2;
 			} else {
@@ -231,12 +231,13 @@ public class Expression {
 	private List<FunctionOperation> operations = new ArrayList<FunctionOperation>();
 
 	public double evaluate(double[] values) {
-		String[] xyz = new String[] {"x", "y", "z"};
 		int i = 0;
 		for (String s : variablesInOrder) {
-			if (s.contains("x")) intStorage[i++] = values[0];
-			if (s.contains("y")) intStorage[i++] = values[1];
-			if (s.contains("z")) intStorage[i++] = values[2];
+			if (s.contains("x")) intStorage[i] = values[0];
+			else if (s.contains("y")) intStorage[i] = values[1];
+			else if (s.contains("z")) intStorage[i] = values[2];
+			else intStorage[i] = Double.parseDouble(s);
+			i++;
 		}
 		for (FunctionOperation fo : operations) {
 			switch (fo.operation) {
