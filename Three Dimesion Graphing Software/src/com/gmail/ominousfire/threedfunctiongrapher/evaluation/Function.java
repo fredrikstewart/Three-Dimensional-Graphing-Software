@@ -179,6 +179,7 @@ public class Function implements Runnable {
 			System.out.println("Thread " + threadNumber + " 100% finished");
 			isReady = true;
 		} catch (Exception e) {
+			e.printStackTrace();
 			System.err.println("A thread has crashed! Are you sure that was a valid function?");
 			System.exit(-1);
 		}

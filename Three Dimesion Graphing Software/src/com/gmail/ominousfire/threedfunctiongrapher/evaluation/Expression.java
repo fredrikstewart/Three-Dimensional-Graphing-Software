@@ -6,10 +6,14 @@ import java.util.List;
 public class Expression {
 
 	private double[] intStorage;
-
+	private static final String megaRegex = "[)(]*[/*%^][)(]*|[)(]*[+][)(]*|[)(]*[^E/*%)(+-^][-][)(]*";
+	//x^-2+y^-(2)-z^2=1
 	public Expression(String expression) {
+		expression = bufferVariables(expression);
+		System.out.println("Buffered Expression: " + expression);
 		expression = decimalAllNumbers(expression);
-		String[] sa = expression.split("[/*%^]|[+]|[^E/*%)(+^][-]", 0);
+		System.out.println("Decimaled Expression: " + expression);
+		String[] sa = expression.split(megaRegex, 0);
 		totalIndecies = sa.length;
 		for (String s: sa) {
 			s = s.replaceAll("asin", "");
@@ -21,29 +25,40 @@ public class Expression {
 			s = s.replaceAll("sqrt", "");
 			s = s.replaceAll("toRadians", "");
 			s = s.replaceAll("ln", "");
-			variablesInOrder.add(s.replaceAll("[)(]", ""));
-			System.out.println(s.replaceAll("[)(]", ""));
+			variablesInOrder.add(s.replaceAll("[-]*[)(]", ""));
+			System.out.println("variable:" + s.replaceAll("[-]*[)(]", ""));
 		}
 		String orderedContents = expression.replaceAll("[\t \n\r]", "");
 		for (int i = 0; i < totalIndecies; i++) {
 			orderedContents = orderedContents.replaceFirst(variablesInOrder.get(i), "" + i);
+			System.out.println("ordered contents:" + orderedContents);
 		}
-		//System.out.println(orderedContents);
+		System.out.println("ordered contents:" + orderedContents + "\nexpression: " + expression);
 
 		createOrder(orderedContents);
 
 		intStorage = new double[totalIndecies];
 	}
 
+	private String bufferVariables(String contents) {
+		for (int i = 0; i < contents.length() - 1; i++) {
+			if (contents.charAt(i + 1) == '-' && (contents.charAt(i) != 'E' && ("" + contents.charAt(i)).matches("[xyz0123456789)-]"))) {
+				contents = contents.substring(0, i + 1) + " " + contents.substring(i + 1, contents.length());
+			}
+		}
+		return contents;
+	}
+
 	private String decimalAllNumbers(String expression) {
-		String[] sa = expression.split("[/*%^]|[+]|[^E/*%)(+^][-]", 0);
+		String[] sa = expression.split(megaRegex , 0);
 		int currentIndex = 0;
 		for (String s: sa) {
-			if (s.matches("[0-9]+$")) {
-				expression = expression.substring(0, currentIndex) + expression.substring(currentIndex).replaceFirst(s, s + ".0");
-				currentIndex += s.length() + 2;
+			System.out.println("decimaling number:" + s);
+			if (s.matches("[-0-9)(]+$") && s.matches(".*[0-9]*.*")) {
+				expression = expression.substring(0, currentIndex) + expression.substring(currentIndex).replaceFirst(s.replaceAll("[(]", "[(]"), s + ".0");
+				currentIndex += s.length() + 3;
 			} else {
-				currentIndex += s.length();
+				currentIndex += s.length() + 1;
 			}
 		}
 		return expression;
@@ -115,9 +130,21 @@ public class Expression {
 			operations.add(new FunctionOperation(FunctionOperation.SIN, d, -1, d));
 		}
 		while (contents.matches(".*[(].*[)].*")) {
-			String subContents = contents.substring(contents.indexOf("(") + 1, getMatchingParenIndex(contents, contents.indexOf("(")));
+			int  i = contents.indexOf("(");
+			String subContents = contents.substring(i + 1, getMatchingParenIndex(contents, i));
 			int d = createOrder(subContents);
-			contents = contents.replace("(" + subContents + ")", "" + d);
+			if (contents.charAt(i- 1) == '-') {
+				operations.add(new FunctionOperation(FunctionOperation.NEGATE, d, -1, d));
+				contents = contents.replace("-(" + subContents + ")", "" + d);
+			} else {
+				contents = contents.replace("(" + subContents + ")", "" + d);
+			}
+		}
+		while (contents.startsWith("-")) {
+			String subContents = contents.substring(1, getNumberFromBeginning(contents).length());
+			int d = createOrder(subContents);
+			operations.add(new FunctionOperation(FunctionOperation.NEGATE, d, -1, d));
+			contents = contents.replace("-" + subContents, "" + d);
 		}
 		//Now that all parens are gone, do the rest of PEMDAS (Exponents, Multiply, Divide, Add, Sub) 
 		while (contents.contains("^")) {
@@ -211,6 +238,9 @@ public class Expression {
 			if (!allNumberCharacters.contains("" + string.charAt(i))) {
 				return string.substring(0, i);
 			}
+			if (i > 0 && (string.charAt(i) == '-' && !(string.charAt(i - 1) == 'E'))) {
+				return string.substring(0, i);
+			}
 		}
 		return string;
 	}
@@ -220,6 +250,9 @@ public class Expression {
 	private String getNumberFromEnd(String string) {
 		for (int i = string.length() - 1; i >= 0; i--) {
 			if (!allNumberCharacters.contains("" + string.charAt(i))) {
+				return string.substring(i + 1);
+			}
+			if (i > 0 && (string.charAt(i) == '-' && !(string.charAt(i - 1) == 'E'))) {
 				return string.substring(i + 1);
 			}
 		}
@@ -282,6 +315,9 @@ public class Expression {
 				break;
 			case FunctionOperation.TO_RADIANS:
 				intStorage[fo.storageIndex] = Math.toRadians(intStorage[fo.index1]);
+				break;
+			case FunctionOperation.NEGATE:
+				intStorage[fo.storageIndex] = -(intStorage[fo.index1]);
 				break;
 			}
 		}

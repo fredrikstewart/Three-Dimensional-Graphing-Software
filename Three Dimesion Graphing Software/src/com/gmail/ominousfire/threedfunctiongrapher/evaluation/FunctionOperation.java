@@ -16,12 +16,15 @@ public class FunctionOperation {
 	public static final int ACOS = 12;
 	public static final int ASIN = 13;
 	public static final int LN = 14;
+	public static final int NEGATE = 15;
+	
 	public FunctionOperation(int operation, int i, int j, int k) {
 		this.operation = operation;
 		this.index1 = i;
 		this.index2 = j;
 		this.storageIndex = k;
 	}
+	
 	public int operation;
 	public int index1;
 	public int index2;
