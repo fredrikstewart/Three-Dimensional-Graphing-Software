@@ -6,14 +6,12 @@ import java.util.List;
 public class Expression {
 
 	private double[] intStorage;
-	private static final String megaRegex = "[)(]*[/*%^][)(]*|[)(]*[+][)(]*|[)(]*[^E/*%)(+-^][-][)(]*";
-	//x^-2+y^-(2)-z^2=1
+	private static final String splitAtOperatorsRegex = "[)(]*[/*%^][)(]*|[)(]*[+][)(]*|[)(]*[^E/*%)(+-^][-][)(]*";
+	//-x-(-(-(-(-x-(-z^-(-y))))))=y
 	public Expression(String expression) {
 		expression = bufferVariables(expression);
-		System.out.println("Buffered Expression: " + expression);
 		expression = decimalAllNumbers(expression);
-		System.out.println("Decimaled Expression: " + expression);
-		String[] sa = expression.split(megaRegex, 0);
+		String[] sa = expression.split(splitAtOperatorsRegex, 0);
 		totalIndecies = sa.length;
 		for (String s: sa) {
 			s = s.replaceAll("asin", "");
@@ -26,20 +24,18 @@ public class Expression {
 			s = s.replaceAll("toRadians", "");
 			s = s.replaceAll("ln", "");
 			variablesInOrder.add(s.replaceAll("[-]*[)(]", ""));
-			System.out.println("variable:" + s.replaceAll("[-]*[)(]", ""));
 		}
 		String orderedContents = expression.replaceAll("[\t \n\r]", "");
 		for (int i = 0; i < totalIndecies; i++) {
 			orderedContents = orderedContents.replaceFirst(variablesInOrder.get(i), "" + i);
-			System.out.println("ordered contents:" + orderedContents);
 		}
-		System.out.println("ordered contents:" + orderedContents + "\nexpression: " + expression);
-
+		System.out.println(orderedContents);
 		createOrder(orderedContents);
 
 		intStorage = new double[totalIndecies];
 	}
 
+	
 	private String bufferVariables(String contents) {
 		for (int i = 0; i < contents.length() - 1; i++) {
 			if (contents.charAt(i + 1) == '-' && (contents.charAt(i) != 'E' && ("" + contents.charAt(i)).matches("[xyz0123456789)-]"))) {
@@ -50,10 +46,9 @@ public class Expression {
 	}
 
 	private String decimalAllNumbers(String expression) {
-		String[] sa = expression.split(megaRegex , 0);
+		String[] sa = expression.split(splitAtOperatorsRegex , 0);
 		int currentIndex = 0;
 		for (String s: sa) {
-			System.out.println("decimaling number:" + s);
 			if (s.matches("[-0-9)(]+$") && s.matches(".*[0-9]*.*")) {
 				expression = expression.substring(0, currentIndex) + expression.substring(currentIndex).replaceFirst(s.replaceAll("[(]", "[(]"), s + ".0");
 				currentIndex += s.length() + 3;
@@ -68,6 +63,8 @@ public class Expression {
 		contents = contents.replaceAll("[\t \n\r]", "");
 		contents = contents.replaceAll("ee", "" + Math.E);
 		contents = contents.replaceAll("pi", "" + Math.PI);
+		String contentsStart = contents;
+		System.out.println(contents);
 		while (contents.matches(".*ln[(].*[)].*")) {
 			String fun = "ln(";
 			String subContents = contents.substring(contents.indexOf(fun) + fun.length(), getMatchingParenIndex(contents, contents.indexOf(fun) + fun.length()));
@@ -132,19 +129,14 @@ public class Expression {
 		while (contents.matches(".*[(].*[)].*")) {
 			int  i = contents.indexOf("(");
 			String subContents = contents.substring(i + 1, getMatchingParenIndex(contents, i));
+			System.out.println(contentsStart + ":" + subContents);
 			int d = createOrder(subContents);
-			if (contents.charAt(i- 1) == '-') {
+			if (contents.charAt(i- 1) == '-' && (contents.indexOf("(") < 2 || !contents.substring(i - 2).matches("[0-9xyz].*"))) {
 				operations.add(new FunctionOperation(FunctionOperation.NEGATE, d, -1, d));
 				contents = contents.replace("-(" + subContents + ")", "" + d);
 			} else {
 				contents = contents.replace("(" + subContents + ")", "" + d);
 			}
-		}
-		while (contents.startsWith("-")) {
-			String subContents = contents.substring(1, getNumberFromBeginning(contents).length());
-			int d = createOrder(subContents);
-			operations.add(new FunctionOperation(FunctionOperation.NEGATE, d, -1, d));
-			contents = contents.replace("-" + subContents, "" + d);
 		}
 		//Now that all parens are gone, do the rest of PEMDAS (Exponents, Multiply, Divide, Add, Sub) 
 		while (contents.contains("^")) {
@@ -217,13 +209,19 @@ public class Expression {
 				throw e;
 			}
 		}
+		while (contents.startsWith("-")) {
+			String subContents = contents.substring(1, getNumberFromBeginning(contents).length());
+			int d = createOrder(subContents);
+			operations.add(new FunctionOperation(FunctionOperation.NEGATE, d, -1, d));
+			contents = contents.replace("-" + subContents, "" + d);
+		}
 		try {
+			System.out.println(contentsStart + ":" + contents);
 			return Integer.parseInt(contents);
 		} catch (Exception e) {
 			System.out.println(contents);
 			throw new RuntimeException();
 		}
-
 	}
 
 	private String[] getFirstSubtractionSignAndBreak(String contents) {
@@ -321,7 +319,6 @@ public class Expression {
 				break;
 			}
 		}
-		//System.out.println(intStorage[intStorage.length - 1]);
 		return intStorage[intStorage.length - 1];
 
 	}
